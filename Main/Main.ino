@@ -22,7 +22,8 @@
 // variables for button
 const int buttonPin = 2;
 int oldButtonState = LOW;
-float x, y, z;
+float ax, ay, az;
+float gx, gy, gz;
 float testF = 64.2;
 
 void setup() {
@@ -51,18 +52,28 @@ void setup() {
   Serial.println();
   Serial.println("Acceleration in G's");
   Serial.println("X\tY\tZ");
+  Serial.print("Gyroscope sample rate = ");
+  Serial.print(IMU.gyroscopeSampleRate());
+  Serial.println(" Hz");
+  Serial.println();
+  Serial.println("Gyroscope in degrees/second");
+  Serial.println("X\tY\tZ");
 
 }
 
 void loop() {
   if (IMU.accelerationAvailable()) {
-    IMU.readAcceleration(x, y, z);
+    IMU.readAcceleration(ax, ay, az);
     //Serial.print(x);
     //Serial.print("\t");
     //Serial.print(y);
     //Serial.print("\t");
     //Serial.print(z);
     //Serial.print("\n");        
+  }
+
+  if (IMU.gyroscopeAvailable()) {
+    IMU.readGyroscope(gx, gy, gz);
   }
   // check if a peripheral has been discovered
   BLEDevice peripheral = BLE.available();
@@ -84,14 +95,14 @@ void loop() {
     // stop scanning
     BLE.stopScan();
 
-    controlLed(peripheral);
+    sendData(peripheral);
 
     // peripheral disconnected, start scanning again
     BLE.scanForUuid("19b10000-e8f2-537e-4f6c-d104768a1214");
   }
 }
 
-void controlLed(BLEDevice peripheral) {
+void sendData(BLEDevice peripheral) {
   // connect to the peripheral
   Serial.println("Connecting ...");
 
@@ -113,25 +124,20 @@ void controlLed(BLEDevice peripheral) {
   }
 
   // retrieve the LED characteristic
-  BLECharacteristic ledCharacteristic = peripheral.characteristic("19b10001-e8f2-537e-4f6c-d104768a1214");
+  BLECharacteristic AxCharacteristic = peripheral.characteristic("19b10001-e8f2-537e-4f6c-d104768a1214");
   BLECharacteristic AyCharacteristic = peripheral.characteristic("19b10002-e8f2-537e-4f6c-d104768a1214");
   BLECharacteristic AzCharacteristic = peripheral.characteristic("19b10003-e8f2-537e-4f6c-d104768a1214");
-
-  if (!ledCharacteristic) {
-    Serial.println("Peripheral does not have LED characteristic!");
-    peripheral.disconnect();
-    return;
-  } else if (!ledCharacteristic.canWrite()) {
-    Serial.println("Peripheral does not have a writable LED characteristic!");
-    peripheral.disconnect();
-    return;
-  }
+  BLECharacteristic GxCharacteristic = peripheral.characteristic("19b10004-e8f2-537e-4f6c-d104768a1214");
+  BLECharacteristic GyCharacteristic = peripheral.characteristic("19b10005-e8f2-537e-4f6c-d104768a1214");
+  BLECharacteristic GzCharacteristic = peripheral.characteristic("19b10006-e8f2-537e-4f6c-d104768a1214");
 
   while (peripheral.connected()) {
     // while the peripheral is connected
     float fx, fy, fz;
+    float fgx, fgy, fgz;
     
     int ix, iy, iz;
+    int igx, igy, igz;
 
     // read the button pin
     int buttonState = digitalRead(buttonPin);
@@ -145,25 +151,35 @@ void controlLed(BLEDevice peripheral) {
 
         // button is pressed, write 0x01 to turn the LED on
         for (int i = 0; i < 60; i++) {
-          IMU.readAcceleration(x, y, z);
-          fx = x * 100;
-          fy = y * 100;
-          fz = z * 100;
+          IMU.readAcceleration(ax, ay, az);
+          fx = ax * 100;
+          fy = ay * 100;
+          fz = az * 100;
           
           ix = fx;
           iy = fy;
           iz = fz;
 
-          ledCharacteristic.writeValue((byte)ix);
+          AxCharacteristic.writeValue((byte)ix);
           AyCharacteristic.writeValue((byte)iy);
           AzCharacteristic.writeValue((byte)iz);
+
+          fgx = gx * 100;
+          fgy = gy * 100;
+          fgz = gz * 100;
+
+          igx = fgx;
+          igy = fgy;
+          igz = fgz;
+
+          GxCharacteristic.writeValue((byte)igx);
+          GyCharacteristic.writeValue((byte)igy);
+          GzCharacteristic.writeValue((byte)igz);
         }
         
       } else {
         Serial.println("button released");
 
-        // button is released, write 0x00 to turn the LED off
-        ledCharacteristic.writeValue((byte)0);
       }
     }
   }
