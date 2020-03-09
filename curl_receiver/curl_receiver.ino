@@ -4,7 +4,7 @@
 
 #include <ArduinoBLE.h>
 
-BLEService curlCountService("19B10000-E8F2-537E-4F6C-D104768A1214");
+BLEService peripheralService("19B10000-E8F2-537E-4F6C-D104768A1214");
 
 BLEIntCharacteristic CurlCount("19B10001-E8F2-537E-4F6C-D104768A1214", BLERead | BLEWrite);
 
@@ -19,11 +19,11 @@ void setup() {
   }
 
   BLE.setLocalName("Curl Count Receiver");
-  BLE.setAdvertisedService(curlCountService);
+  BLE.setAdvertisedService(peripheralService);
 
-  curlCountService.addCharacteristic(CurlCount);
+  peripheralService.addCharacteristic(CurlCount);
 
-  BLE.addService(curlCountService);
+  BLE.addService(peripheralService);
 
   CurlCount.writeValue(0);
 
