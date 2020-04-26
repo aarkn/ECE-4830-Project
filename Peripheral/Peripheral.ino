@@ -92,7 +92,7 @@ void loop() {
         az = AzCharacteristic.value();
         Serial.print("AZ: ");
         Serial.print(az);
-        Serial.print("\n");          
+        Serial.print("\t");          
       }
       if (GxCharacteristic.written()) {
         gx = GxCharacteristic.value();
